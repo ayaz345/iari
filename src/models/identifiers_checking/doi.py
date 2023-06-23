@@ -60,8 +60,7 @@ class Doi(BaseModel):
         from src import app
 
         app.logger.info("Looking up DOI in OpenAlex")
-        work = Works()[f"https://doi.org/{self.doi}"]
-        if work:
+        if work := Works()[f"https://doi.org/{self.doi}"]:
             app.logger.debug("found work :)")
             self.found_in_openalex = True
             self.marked_as_retracted_in_openalex = bool(work["is_retracted"])
@@ -104,10 +103,9 @@ class Doi(BaseModel):
     def __lookup_via_cirrussearch__(self) -> None:
         from src import app
 
-        entities = fulltext_search(
+        if entities := fulltext_search(
             search=f"haswbstatement:P356={self.doi}", max_results=1
-        )
-        if entities:
+        ):
             # We only care about the first because there should only be one
             self.wikidata_entity_qid = entities[0]["title"]
             self.found_in_wikidata = True
@@ -155,17 +153,11 @@ class Doi(BaseModel):
                     f"This paper is marked retracted in Wikidata, "
                     f"but not in OpenAlex, see {self.openalex_work_uri}"
                 )
-            elif (
-                self.marked_as_retracted_in_openalex
-                and self.marked_as_retracted_in_wikidata
-            ):
+            elif self.marked_as_retracted_in_openalex:
                 app.logger.info(
                     "This paper is marked retracted in both Wikidata and OpenAlex"
                 )
-            elif (
-                not self.marked_as_retracted_in_openalex
-                and not self.marked_as_retracted_in_wikidata
-            ):
+            else:
                 app.logger.info(
                     "This paper is not marked retracted in any of the catalog sources we support."
                 )
@@ -173,7 +165,7 @@ class Doi(BaseModel):
             app.logger.info("This paper was not found in both OpenAlex and Wikidata")
 
     def get_doi_dictionary(self) -> Dict[str, Any]:
-        data = self.dict(
+        return self.dict(
             include={
                 "wikidata",
                 "openalex",
@@ -183,7 +175,6 @@ class Doi(BaseModel):
                 "internet_archive_scholar",
             }
         )
-        return data
 
     def __lookup_in_fatcat__(self):
         """DOIs in fatcat are all lowercase"""

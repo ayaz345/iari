@@ -103,19 +103,16 @@ class ArticleJob(Job):
         Words separated by spaces are allowed.
         _ is not allowed anywhere"""
         underscore_pattern = re.compile(r"^[^_]*$")
-        horizontal_line_regex = r"^(\s*[^\s]+\s*)+(\s*\|\s*[^\s]+\s*)*$"
         if " | " in self.regex:
             return False
         if "||" in self.regex:
             return False
-        if not re.fullmatch(underscore_pattern, self.regex):
-            return False
-        if re.fullmatch(horizontal_line_regex, self.regex):
-            # print('The string is formatted correctly.')
-            return True
-        else:
-            # print('The string is not formatted correctly.')
-            return False
+        horizontal_line_regex = r"^(\s*[^\s]+\s*)+(\s*\|\s*[^\s]+\s*)*$"
+        return (
+            False
+            if not re.fullmatch(underscore_pattern, self.regex)
+            else bool(re.fullmatch(horizontal_line_regex, self.regex))
+        )
 
     def validate_regex_and_extract_url(self):
         if self.__valid_regex__:

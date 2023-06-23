@@ -335,7 +335,7 @@ class PdfHandler(BaseHandler):
             link.dict() for link in self.links_from_text_without_spaces
         ]
         annotation_links = [link.dict() for link in self.annotation_links]
-        data = {
+        return {
             "words_mean": self.mean_number_of_words_per_page,
             "words_max": self.max_number_of_words_per_page,
             "words_min": self.min_number_of_words_per_page,
@@ -359,9 +359,6 @@ class PdfHandler(BaseHandler):
             "debug_blocks": self.__get_blocks__,
             "characters": self.number_of_total_text_characters,
         }
-        # console.print(data)
-        # exit()
-        return data
 
     def __read_pdf_from_file__(self):
         """This is needed for fast testing on pdfs in test_data"""

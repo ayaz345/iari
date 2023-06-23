@@ -57,14 +57,10 @@ class CheckUrl(StatisticsWriteView):
 
         app.logger.debug("__handle_valid_job__; running")
 
-        if not self.job.refresh:
-            self.__setup_and_read_from_cache__()
-            if self.io.data:
-                return self.io.data, 200
-            else:
-                return self.__return_fresh_data__()
-        else:
+        if self.job.refresh:
             return self.__return_fresh_data__()
+        self.__setup_and_read_from_cache__()
+        return (self.io.data, 200) if self.io.data else self.__return_fresh_data__()
 
     def __return_fresh_data__(self):
         from src import app
@@ -77,7 +73,7 @@ class CheckUrl(StatisticsWriteView):
         timestamp = datetime.timestamp(datetime.utcnow())
         data["timestamp"] = int(timestamp)
         isodate = datetime.isoformat(datetime.utcnow())
-        data["isodate"] = str(isodate)
+        data["isodate"] = isodate
         url_hash_id = self.__url_hash_id__
         data["id"] = url_hash_id
         data_without_text = deepcopy(data)
@@ -88,10 +84,7 @@ class CheckUrl(StatisticsWriteView):
             data["refreshed_now"] = True
         else:
             data["refreshed_now"] = False
-        if self.job.debug:
-            return data, 200
-        else:
-            return data_without_text, 200
+        return (data, 200) if self.job.debug else (data_without_text, 200)
 
     def __write_to_cache__(self, data_without_text):
         # We skip writes during testing

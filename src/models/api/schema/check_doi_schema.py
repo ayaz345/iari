@@ -13,11 +13,9 @@ class CheckDoiSchema(BaseSchema):
 
     # noinspection PyUnusedLocal
     @post_load
-    # **kwargs is needed here despite what the validator claims
-    def return_object(self, data, **kwargs) -> CheckDoiJob:  # type: ignore # dead: disable
+    def return_object(self, data, **kwargs) -> CheckDoiJob:    # type: ignore # dead: disable
         """Return job object"""
         from src import app
 
         app.logger.debug("return_object: running")
-        job = CheckDoiJob(**data)
-        return job
+        return CheckDoiJob(**data)

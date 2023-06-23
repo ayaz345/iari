@@ -53,29 +53,28 @@ class Xhtml(StatisticsWriteView):
         self.__setup_and_read_from_cache__()
         if self.io.data and not self.job.refresh:
             return self.io.data, 200
+        url_string = self.job.unquoted_url
+        app.logger.info(f"Got {url_string}")
+        handler = XhtmlHandler(job=self.job)
+        handler.download_and_extract()
+        if handler.error:
+            return handler.error_details, 400
+        data = handler.get_dict()
+        # console.print(data)
+        # exit()
+        timestamp = datetime.timestamp(datetime.utcnow())
+        data["timestamp"] = int(timestamp)
+        isodate = datetime.isoformat(datetime.utcnow())
+        data["isodate"] = isodate
+        url_hash_id = self.__url_hash_id__
+        data["id"] = url_hash_id
+        # We don't write during tests because it breaks the CI
+        if not self.job.testing:
+            write = XhtmlFileIo(data=data, hash_based_id=url_hash_id)
+            write.write_to_disk()
+        if self.job.refresh:
+            self.__print_log_message_about_refresh__()
+            data["refreshed_now"] = True
         else:
-            url_string = self.job.unquoted_url
-            app.logger.info(f"Got {url_string}")
-            handler = XhtmlHandler(job=self.job)
-            handler.download_and_extract()
-            if handler.error:
-                return handler.error_details, 400
-            data = handler.get_dict()
-            # console.print(data)
-            # exit()
-            timestamp = datetime.timestamp(datetime.utcnow())
-            data["timestamp"] = int(timestamp)
-            isodate = datetime.isoformat(datetime.utcnow())
-            data["isodate"] = str(isodate)
-            url_hash_id = self.__url_hash_id__
-            data["id"] = url_hash_id
-            # We don't write during tests because it breaks the CI
-            if not self.job.testing:
-                write = XhtmlFileIo(data=data, hash_based_id=url_hash_id)
-                write.write_to_disk()
-            if self.job.refresh:
-                self.__print_log_message_about_refresh__()
-                data["refreshed_now"] = True
-            else:
-                data["refreshed_now"] = False
-            return data, 200
+            data["refreshed_now"] = False
+        return data, 200

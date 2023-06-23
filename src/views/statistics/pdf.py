@@ -68,46 +68,46 @@ class Pdf(StatisticsWriteView):
         self.__setup_and_read_from_cache__()
         if self.io.data and not self.job.refresh:
             return self.io.data, 200
+        url_string = self.job.unquoted_url
+        app.logger.info(f"Got {url_string}")
+        pdf = PdfHandler(job=self.job)
+        pdf.download_and_extract()
+        if pdf.error:
+            if not isinstance(pdf.error_details, tuple):
+                raise TypeError()
+            return pdf.error_details[1], pdf.error_details[0]
+        data = pdf.get_dict()
+        timestamp = datetime.timestamp(datetime.utcnow())
+        data["timestamp"] = int(timestamp)
+        isodate = datetime.isoformat(datetime.utcnow())
+        data["isodate"] = isodate
+        url_hash_id = self.__url_hash_id__
+        data["id"] = url_hash_id
+        # Remove debug information
+        data_without_debug_information = deepcopy(data)
+        del data_without_debug_information["debug_url_annotations"]
+        del data_without_debug_information["debug_text_original"]
+        del data_without_debug_information["debug_text_without_linebreaks"]
+        del data_without_debug_information["debug_text_without_spaces"]
+        del data_without_debug_information["debug_html"]
+        del data_without_debug_information["debug_xml"]
+        del data_without_debug_information["debug_json"]
+        del data_without_debug_information["debug_blocks"]
+        # console.print(data)
+        # sys.exit()
+        # We don't write during tests because it breaks the CI
+        if not self.job.testing:
+            write = PdfFileIo(
+                data=data_without_debug_information, hash_based_id=url_hash_id
+            )
+            write.write_to_disk()
+        if self.job.refresh:
+            self.__print_log_message_about_refresh__()
+            data["refreshed_now"] = True
         else:
-            url_string = self.job.unquoted_url
-            app.logger.info(f"Got {url_string}")
-            pdf = PdfHandler(job=self.job)
-            pdf.download_and_extract()
-            if pdf.error:
-                if not isinstance(pdf.error_details, tuple):
-                    raise TypeError()
-                return pdf.error_details[1], pdf.error_details[0]
-            data = pdf.get_dict()
-            timestamp = datetime.timestamp(datetime.utcnow())
-            data["timestamp"] = int(timestamp)
-            isodate = datetime.isoformat(datetime.utcnow())
-            data["isodate"] = str(isodate)
-            url_hash_id = self.__url_hash_id__
-            data["id"] = url_hash_id
-            # Remove debug information
-            data_without_debug_information = deepcopy(data)
-            del data_without_debug_information["debug_url_annotations"]
-            del data_without_debug_information["debug_text_original"]
-            del data_without_debug_information["debug_text_without_linebreaks"]
-            del data_without_debug_information["debug_text_without_spaces"]
-            del data_without_debug_information["debug_html"]
-            del data_without_debug_information["debug_xml"]
-            del data_without_debug_information["debug_json"]
-            del data_without_debug_information["debug_blocks"]
-            # console.print(data)
-            # sys.exit()
-            # We don't write during tests because it breaks the CI
-            if not self.job.testing:
-                write = PdfFileIo(
-                    data=data_without_debug_information, hash_based_id=url_hash_id
-                )
-                write.write_to_disk()
-            if self.job.refresh:
-                self.__print_log_message_about_refresh__()
-                data["refreshed_now"] = True
-            else:
-                data["refreshed_now"] = False
-            if self.job.debug:
-                return self.__handle_debug_job__(data=data)
-            else:
-                return data_without_debug_information, 200
+            data["refreshed_now"] = False
+        return (
+            self.__handle_debug_job__(data=data)
+            if self.job.debug
+            else (data_without_debug_information, 200)
+        )

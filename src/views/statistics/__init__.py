@@ -38,8 +38,7 @@ class StatisticsView(Resource):
         from src import app
 
         app.logger.debug("__validate__: running")
-        errors = self.schema.validate(request.args)
-        if errors:
+        if errors := self.schema.validate(request.args):
             app.logger.debug(f"Found errors: {errors}")
             abort(400, error=str(errors))
 

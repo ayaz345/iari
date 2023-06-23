@@ -327,7 +327,7 @@ class TestWikipediaArticle(TestCase):
         assert wp.revision_timestamp > 1683558390
         # print(wp.revision_isodate)
         # we only check the year as this test is not reproducible
-        assert str(wp.revision_isodate)[:4] == "2023"
+        assert str(wp.revision_isodate).startswith("2023")
         print(wp.wikitext[:100].replace("\n", ""))
         # This will break over time but we cannot do
         # anything about it besides mocking the request

@@ -38,7 +38,7 @@ class WikipediaUrl(BaseModel):
     @property
     def __is_wayback_machine_url__(self):
         logger.debug("is_wayback_machine_url: running")
-        return bool("//web.archive.org" in self.url)
+        return "//web.archive.org" in self.url
 
     @property
     def get_dict(self) -> Dict[str, Any]:
@@ -95,13 +95,13 @@ class WikipediaUrl(BaseModel):
             logger.debug(f"Could not find urlscheme in {self.url}")
             self.malformed_url = True
             self.malformed_url_details = MalformedUrlError.MISSING_SCHEME
+        elif self.scheme in ["http", "https", "ftp", "sftp"]:
+            logger.debug(f"Found valid urlscheme: {self.scheme}")
+
         else:
-            if self.scheme not in ["http", "https", "ftp", "sftp"]:
-                logger.debug(f"Unrecognized scheme: {self.scheme}")
-                self.malformed_url = True
-                self.malformed_url_details = MalformedUrlError.UNRECOGNIZED_SCHEME
-            else:
-                logger.debug(f"Found valid urlscheme: {self.scheme}")
+            logger.debug(f"Unrecognized scheme: {self.scheme}")
+            self.malformed_url = True
+            self.malformed_url_details = MalformedUrlError.UNRECOGNIZED_SCHEME
 
     def __extract_tld__(self):
         if not self.netloc:
@@ -134,11 +134,11 @@ class WikipediaUrl(BaseModel):
         https://web.archive.org/web/20141031094104/http://collections.rmg.co.uk/collections/objects/13275.html
         """
         logger.debug("__parse_wayback_machine_url__: running")
-        # Extract the remaining portion of the URL after the timestamp
-        result = re.search(r"https?://web\.archive\.org/web/([\d*]+)/(.*)", self.url)
-        if result:
-            self.wayback_machine_timestamp = result.group(1)
-            self.archived_url = result.group(2)
+        if result := re.search(
+            r"https?://web\.archive\.org/web/([\d*]+)/(.*)", self.url
+        ):
+            self.wayback_machine_timestamp = result[1]
+            self.archived_url = result[2]
         if not self.archived_url:
             message = f"Could not parse the archived url from '{self.url}'"
             logger.warning(message)

@@ -29,26 +29,25 @@ class Article(StatisticsWriteView):
         if not self.wikipedia_analyzer:
             raise MissingInformationError("self.wikipedia_analyzer was None")
         self.__get_statistics__()
-        if self.wikipedia_analyzer.found:
-            app.logger.debug("found article")
-            if self.wikipedia_analyzer.is_redirect:
-                app.logger.debug("found redirect")
-                return AnalyzerReturn.IS_REDIRECT.value, 400
-            else:
-                app.logger.debug("adding time information and returning the statistics")
-                self.__update_statistics_with_time_information__()
-                # app.logger.debug(f"dictionary from analyzer: {self.statistics_dictionary}")
-                # we got a json response
-                # according to https://stackoverflow.com/questions/13081532/return-json-response-from-flask-view
-                # flask calls jsonify automatically
-                self.__write_to_disk__()
-                if not self.io:
-                    raise MissingInformationError()
-                self.io.data["served_from_cache"] = False
-                # app.logger.debug("returning dictionary")
-                return self.io.data, 200
-        else:
+        if not self.wikipedia_analyzer.found:
             return AnalyzerReturn.NOT_FOUND.value, 404
+        app.logger.debug("found article")
+        if self.wikipedia_analyzer.is_redirect:
+            app.logger.debug("found redirect")
+            return AnalyzerReturn.IS_REDIRECT.value, 400
+        else:
+            app.logger.debug("adding time information and returning the statistics")
+            self.__update_statistics_with_time_information__()
+            # app.logger.debug(f"dictionary from analyzer: {self.statistics_dictionary}")
+            # we got a json response
+            # according to https://stackoverflow.com/questions/13081532/return-json-response-from-flask-view
+            # flask calls jsonify automatically
+            self.__write_to_disk__()
+            if not self.io:
+                raise MissingInformationError()
+            self.io.data["served_from_cache"] = False
+            # app.logger.debug("returning dictionary")
+            return self.io.data, 200
 
     def __handle_valid_job__(self):
         from src import app
@@ -87,7 +86,7 @@ class Article(StatisticsWriteView):
             timestamp = datetime.timestamp(datetime.utcnow())
             self.io.data["timestamp"] = int(timestamp)
             isodate = datetime.isoformat(datetime.utcnow())
-            self.io.data["isodate"] = str(isodate)
+            self.io.data["isodate"] = isodate
         else:
             raise ValueError("not a dict")
 

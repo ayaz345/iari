@@ -31,11 +31,8 @@ class WikipediaTemplate(BaseModel):
     @property
     def __first_parameter__(self) -> str:
         """Private helper method"""
-        if self.parameters:
-            if "first_parameter" in self.parameters:
-                return str(self.parameters["first_parameter"])
-            else:
-                return ""
+        if self.parameters and "first_parameter" in self.parameters:
+            return str(self.parameters["first_parameter"])
         else:
             return ""
 
@@ -44,9 +41,8 @@ class WikipediaTemplate(BaseModel):
         # todo make this work for multiple language editions
         if self.name == "isbn":
             self.isbn = self.__first_parameter__
-        else:
-            if "isbn" in self.parameters:
-                self.isbn = str(self.parameters["isbn"])
+        elif "isbn" in self.parameters:
+            self.isbn = str(self.parameters["isbn"])
 
     @property
     def urls(self) -> List[WikipediaUrl]:
@@ -55,33 +51,28 @@ class WikipediaTemplate(BaseModel):
         #     raise MissingInformationError("this templates has not been extracted")
         urls = set()
         if "url" in self.parameters:
-            url = self.parameters["url"]
-            if url:
+            if url := self.parameters["url"]:
                 logger.debug(f"url: {url}")
                 url = WikipediaUrl(url=url)
                 url.extract()
                 urls.add(url)
         if "archive_url" in self.parameters:
-            url = self.parameters["archive_url"]
-            if url:
+            if url := self.parameters["archive_url"]:
                 url = WikipediaUrl(url=url)
                 url.extract()
                 urls.add(url)
         if "conference_url" in self.parameters:
-            url = self.parameters["conference_url"]
-            if url:
+            if url := self.parameters["conference_url"]:
                 url = WikipediaUrl(url=url)
                 url.extract()
                 urls.add(url)
         if "transcript_url" in self.parameters:
-            url = self.parameters["transcript_url"]
-            if url:
+            if url := self.parameters["transcript_url"]:
                 url = WikipediaUrl(url=url)
                 url.extract()
                 urls.add(url)
         if "chapter_url" in self.parameters:
-            url = self.parameters["chapter_url"]
-            if url:
+            if url := self.parameters["chapter_url"]:
                 url = WikipediaUrl(url=url)
                 url.extract()
                 urls.add(url)
@@ -105,18 +96,16 @@ class WikipediaTemplate(BaseModel):
         # the comment and join them or in the case no comment is found
         # just return the whole thing.
         regex = re.compile(r"(.*)<!--.*-->(.*)|(.*)")
-        matches = re.findall(pattern=regex, string=text)
-        if matches:
-            # print(match.groups())
-            string = ""
-            for match in matches:
-                # print(match)
-                if match:
-                    for part in match:
-                        string += str(part)
-            return string.strip()
-        else:
+        if not (matches := re.findall(pattern=regex, string=text)):
             return text
+        # print(match.groups())
+        string = ""
+        for match in matches:
+            # print(match)
+            if match:
+                for part in match:
+                    string += str(part)
+        return string.strip()
 
     # noinspection PyShadowingNames
     @staticmethod

@@ -42,9 +42,7 @@ class WikipediaReferenceExtractor(WariBaseModel):
         """List of non-unique and valid urls"""
         urls: List[WikipediaUrl] = []
         for reference in self.references:
-            for url in reference.reference_urls:
-                if url.is_valid:
-                    urls.append(url)
+            urls.extend(url for url in reference.reference_urls if url.is_valid)
         return urls
 
     # @property
@@ -62,8 +60,7 @@ class WikipediaReferenceExtractor(WariBaseModel):
         """List of raw non-unique urls found in the reference"""
         urls: List[str] = []
         for reference in self.references:
-            for url in reference.reference_urls:
-                urls.append(url.url)
+            urls.extend(url.url for url in reference.reference_urls)
         return urls
 
     @property
@@ -196,11 +193,21 @@ class WikipediaReferenceExtractor(WariBaseModel):
         app.logger.debug("__extract_sections__: running")
         if not self.wikicode:
             self.__parse_wikitext__()
-        sections: List[Wikicode] = self.wikicode.get_sections(
+        if sections := self.wikicode.get_sections(
             levels=[2],
             include_headings=True,
-        )
-        if not sections:
+        ):
+            self.__extract_root_section__()
+            for section in sections:
+                mw_section = MediawikiSection(
+                    wikicode=section,
+                    testing=self.testing,
+                    language_code=self.language_code,
+                    job=self.job,
+                )
+                mw_section.extract()
+                self.sections.append(mw_section)
+        else:
             app.logger.debug("No level 2 sections detected, creating root section")
             # console.print(self.wikicode)
             # exit()
@@ -213,17 +220,6 @@ class WikipediaReferenceExtractor(WariBaseModel):
             )
             mw_section.extract()
             self.sections.append(mw_section)
-        else:
-            self.__extract_root_section__()
-            for section in sections:
-                mw_section = MediawikiSection(
-                    wikicode=section,
-                    testing=self.testing,
-                    language_code=self.language_code,
-                    job=self.job,
-                )
-                mw_section.extract()
-                self.sections.append(mw_section)
         app.logger.debug(f"Number of sections found: {len(self.sections)}")
 
     def __parse_wikitext__(self):
@@ -235,10 +231,7 @@ class WikipediaReferenceExtractor(WariBaseModel):
 
     @property
     def reference_ids(self) -> List[str]:
-        ids = []
-        for reference in self.references:
-            ids.append(reference.reference_id)
-        return ids
+        return [reference.reference_id for reference in self.references]
 
     def __populate_references__(self):
         for section in self.sections:
@@ -278,10 +271,10 @@ class WikipediaReferenceExtractor(WariBaseModel):
 
     def extract_lines(self, end) -> str:
         """Extract lines until end"""
-        lines = ""
         if not end:
             raise MissingInformationError("did not get what we need")
-        for index, line in enumerate(str(self.wikicode).splitlines()):
-            if index < end:
-                lines += f"{line}\n"
-        return lines
+        return "".join(
+            f"{line}\n"
+            for index, line in enumerate(str(self.wikicode).splitlines())
+            if index < end
+        )

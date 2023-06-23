@@ -42,12 +42,10 @@ class MediawikiSection(BaseModel):
     def name(self) -> str:
         """Extracts a section name from the first line of the output from mwparserfromhell"""
         line = self.__get_lines__[0]
-        # Handle special case where no level 2 heading is at the beginning of the section
-        if "==" not in line:
-            logger.info(f"== not found in line {line}")
-            return "root"
-        else:
+        if "==" in line:
             return str(self.__extract_name_from_line__(line=line))
+        logger.info(f"== not found in line {line}")
+        return "root"
 
     @property
     def number_of_references(self):
@@ -56,7 +54,7 @@ class MediawikiSection(BaseModel):
     @staticmethod
     def star_found_at_line_start(line) -> bool:
         """This determines if the line in the current section has a star"""
-        return bool("*" in line[:1])
+        return "*" in line[:1]
 
     @staticmethod
     def __extract_name_from_line__(line):

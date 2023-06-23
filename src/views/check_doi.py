@@ -45,26 +45,25 @@ class CheckDoi(StatisticsWriteView):
         self.__setup_and_read_from_cache__()
         if self.io.data and not self.job.refresh:
             return self.io.data, 200
+        doi_string = self.job.unquoted_doi
+        app.logger.info(f"Got {doi_string}")
+        doi = Doi(doi=doi_string, timeout=self.job.timeout)
+        doi.lookup_doi()
+        data = doi.get_doi_dictionary()
+        timestamp = datetime.timestamp(datetime.utcnow())
+        data["timestamp"] = int(timestamp)
+        isodate = datetime.isoformat(datetime.utcnow())
+        data["isodate"] = isodate
+        doi_hash_id = self.__doi_hash_id__
+        data["id"] = doi_hash_id
+        write = DoiFileIo(data=data, hash_based_id=doi_hash_id)
+        write.write_to_disk()
+        if self.job.refresh:
+            self.__print_log_message_about_refresh__()
+            data["refreshed_now"] = True
         else:
-            doi_string = self.job.unquoted_doi
-            app.logger.info(f"Got {doi_string}")
-            doi = Doi(doi=doi_string, timeout=self.job.timeout)
-            doi.lookup_doi()
-            data = doi.get_doi_dictionary()
-            timestamp = datetime.timestamp(datetime.utcnow())
-            data["timestamp"] = int(timestamp)
-            isodate = datetime.isoformat(datetime.utcnow())
-            data["isodate"] = str(isodate)
-            doi_hash_id = self.__doi_hash_id__
-            data["id"] = doi_hash_id
-            write = DoiFileIo(data=data, hash_based_id=doi_hash_id)
-            write.write_to_disk()
-            if self.job.refresh:
-                self.__print_log_message_about_refresh__()
-                data["refreshed_now"] = True
-            else:
-                data["refreshed_now"] = False
-            return data, 200
+            data["refreshed_now"] = False
+        return data, 200
 
     def __setup_io__(self):
         self.io = DoiFileIo(hash_based_id=self.__doi_hash_id__)

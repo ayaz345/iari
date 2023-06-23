@@ -48,45 +48,46 @@ class WikipediaAnalyzer(WariBaseModel):
 
     def __gather_article_statistics__(self) -> None:
         if (
-            self.job
-            and self.article
-            and not self.article.is_redirect
-            and self.article.found_in_wikipedia
+            not self.job
+            or not self.article
+            or self.article.is_redirect
+            or not self.article.found_in_wikipedia
         ):
-            if not self.article.extractor:
-                raise MissingInformationError("self.article.extractor was None")
-            if not self.article.revision_id:
-                raise MissingInformationError("self.article.revision_id was None")
-            if not self.article.revision_isodate:
-                raise MissingInformationError("self.article.revision_isodate was None")
-            if not self.article.revision_timestamp:
-                raise MissingInformationError(
-                    "self.article.revision_timestamp was None"
-                )
-            ae = self.article.extractor
-            if not self.job.page_id:
-                self.job.get_ids_from_mediawiki_api()
-            self.article_statistics = ArticleStatistics(
-                wari_id=self.job.wari_id,
-                lang=self.job.lang,
-                reference_statistics={
-                    "named": ae.number_of_empty_named_references,
-                    "footnote": ae.number_of_footnote_references,
-                    "content": ae.number_of_content_references,
-                    "general": ae.number_of_general_references,
-                },
-                page_id=self.article.page_id,
-                title=self.job.title,
-                urls=ae.raw_urls,
-                fld_counts=ae.first_level_domain_counts,
-                served_from_cache=False,
-                site=self.job.domain.value,
-                isodate=datetime.utcnow().isoformat(),
-                ores_score=self.article.ores_details,
-                revision_isodate=self.article.revision_isodate.isoformat(),
-                revision_timestamp=self.article.revision_timestamp,
-                revision_id=self.article.revision_id,
+            return
+        if not self.article.extractor:
+            raise MissingInformationError("self.article.extractor was None")
+        if not self.article.revision_id:
+            raise MissingInformationError("self.article.revision_id was None")
+        if not self.article.revision_isodate:
+            raise MissingInformationError("self.article.revision_isodate was None")
+        if not self.article.revision_timestamp:
+            raise MissingInformationError(
+                "self.article.revision_timestamp was None"
             )
+        ae = self.article.extractor
+        if not self.job.page_id:
+            self.job.get_ids_from_mediawiki_api()
+        self.article_statistics = ArticleStatistics(
+            wari_id=self.job.wari_id,
+            lang=self.job.lang,
+            reference_statistics={
+                "named": ae.number_of_empty_named_references,
+                "footnote": ae.number_of_footnote_references,
+                "content": ae.number_of_content_references,
+                "general": ae.number_of_general_references,
+            },
+            page_id=self.article.page_id,
+            title=self.job.title,
+            urls=ae.raw_urls,
+            fld_counts=ae.first_level_domain_counts,
+            served_from_cache=False,
+            site=self.job.domain.value,
+            isodate=datetime.utcnow().isoformat(),
+            ores_score=self.article.ores_details,
+            revision_isodate=self.article.revision_isodate.isoformat(),
+            revision_timestamp=self.article.revision_timestamp,
+            revision_id=self.article.revision_id,
+        )
 
     def get_statistics(self) -> Dict[str, Any]:
         if not self.job:
@@ -101,10 +102,7 @@ class WikipediaAnalyzer(WariBaseModel):
         return self.__get_statistics_dict__()
 
     def __get_statistics_dict__(self) -> Dict[str, Any]:
-        if self.article_statistics:
-            return self.article_statistics.dict()
-        else:
-            return {}
+        return self.article_statistics.dict() if self.article_statistics else {}
 
     def __analyze__(self):
         """Helper method"""

@@ -51,8 +51,7 @@ class AllHandler(WariBaseModel):
                 url = f"http://18.217.22.248/v2/statistics/reference/{reference_id}"
                 tasks.append(asyncio.ensure_future(self.fetch_data(session, url)))
 
-            results = await asyncio.gather(*tasks)
-            return results
+            return await asyncio.gather(*tasks)
 
     @staticmethod
     def __quote__(string):
@@ -66,8 +65,7 @@ class AllHandler(WariBaseModel):
                 url = f"http://18.217.22.248/v2/check-url?url={self.__quote__(url)}"
                 tasks.append(asyncio.ensure_future(self.fetch_data(session, url)))
 
-            results = await asyncio.gather(*tasks)
-            return results
+            return await asyncio.gather(*tasks)
 
     async def check_dois(self, dois: Set[str]):
         async with aiohttp.ClientSession() as session:
@@ -76,8 +74,7 @@ class AllHandler(WariBaseModel):
                 url = f"http://18.217.22.248/v2/check-doi?doi={self.__quote__(doi)}"
                 tasks.append(asyncio.ensure_future(self.fetch_data(session, url)))
 
-            results = await asyncio.gather(*tasks)
-            return results
+            return await asyncio.gather(*tasks)
 
     def fetch_and_compile(self):
         from src import app

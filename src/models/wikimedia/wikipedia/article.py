@@ -97,7 +97,7 @@ class WikipediaArticle(WariBaseModel):
             logger.debug(
                 "Skipped extraction and parsing because the article was not found"
             )
-        elif not self.is_redirect and self.found_in_wikipedia:
+        else:
             if not self.wikitext:
                 raise MissingInformationError("self.wikitext was empty")
             # We got what we need now to make the extraction and parsing
@@ -113,9 +113,6 @@ class WikipediaArticle(WariBaseModel):
             )
             self.extractor.extract_all_references()
             self.__get_ores_scores__()
-            # self.__generate_hash__()
-        else:
-            raise Exception("This branch should never be hit.")
 
     def __fetch_page_data__(self) -> None:
         """This fetches metadata and the latest revision id
@@ -124,15 +121,15 @@ class WikipediaArticle(WariBaseModel):
 
         app.logger.debug("__fetch_page_data__: Running")
         self.__check_if_title_is_empty__()
-        if not self.wikitext:
-            if self.revision_id:
-                self.__fetch_data_for_a_specific_revision__()
-            else:
-                self.__fetch_data_for_the_latest_revision__()
-        else:
+        if self.wikitext:
             logger.info(
                 "Not fetching data via the Wikipedia REST API. We have already got all the data we need"
             )
+
+        elif self.revision_id:
+            self.__fetch_data_for_a_specific_revision__()
+        else:
+            self.__fetch_data_for_the_latest_revision__()
 
     # def __fetch_wikidata_qid__(self):
     #     """Fetch the Wikidata QID so we can efficiently look up pages via JS"""
@@ -467,15 +464,7 @@ class WikipediaArticle(WariBaseModel):
             raise MissingInformationError("self.job.title was empty string")
 
     def __get_ores_scores__(self):
-        if not self.revision_id:
-            if self.job.testing:
-                logger.warning(
-                    "Not testing getting ores score during testing "
-                    "when no revision_id or latest_revision_id are present"
-                )
-            else:
-                raise MissingInformationError("No revision_id fetched, this is a bug")
-        else:
+        if self.revision_id:
             # get the rating from https://ores.wikimedia.org/v3/scores/enwiki/234234320/articlequality
             # Make a request to the ORES API to get the latest score
             # We only support Wikipedia for now
@@ -497,6 +486,14 @@ class WikipediaArticle(WariBaseModel):
                 ]["score"]
             else:
                 print("Error:", response.status_code)
+
+        elif self.job.testing:
+            logger.warning(
+                "Not testing getting ores score during testing "
+                "when no revision_id or latest_revision_id are present"
+            )
+        else:
+            raise MissingInformationError("No revision_id fetched, this is a bug")
 
     def __fetch_data_for_a_specific_revision__(self):
         """Get wikitext for a specific revision

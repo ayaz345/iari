@@ -32,29 +32,30 @@ class XhtmlHandler(BaseHandler):
 
     def __download_xhtml__(self):
         """Download XHTML file from URL."""
+        if self.content:
+            return
+        response = requests.get(self.job.url, timeout=self.job.timeout)
+        content_type = response.headers["content-type"]
+        if response.status_code != 200:
+            self.error = True
+            self.error_details = "Failed to download XHTML file from URL."
+            logger.error(self.error_details)
+            return
         # see https://stackoverflow.com/questions/23714383/what-are-all-the-possible-values-for-http-content-type-header
         valid_content_types = [
             "application/xhtml+xml",
             "text/html; charset=utf-8",
             "text/html",
         ]
-        if not self.content:
-            response = requests.get(self.job.url, timeout=self.job.timeout)
-            content_type = response.headers["content-type"]
-            if response.status_code != 200:
-                self.error = True
-                self.error_details = "Failed to download XHTML file from URL."
-                logger.error(self.error_details)
-                return
-            # We keep strict to the types above for now
-            if content_type.lower() not in valid_content_types:
-                self.error = True
-                self.error_details = (
-                    f"Invalid content type for XHTML file. Got {content_type}"
-                )
-                logger.error(self.error_details)
-                return
-            self.content = response.content
+        # We keep strict to the types above for now
+        if content_type.lower() not in valid_content_types:
+            self.error = True
+            self.error_details = (
+                f"Invalid content type for XHTML file. Got {content_type}"
+            )
+            logger.error(self.error_details)
+            return
+        self.content = response.content
 
     def __extract_links__(self) -> None:
         """Written by chatgpt and adjusted a little"""

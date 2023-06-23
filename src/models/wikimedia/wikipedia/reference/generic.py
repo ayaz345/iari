@@ -63,92 +63,72 @@ class WikipediaReference(JobBaseModel):
     def get_name(self) -> str:
         if not self.soup:
             raise MissingInformationError()
-        # Find the <ref> tag
-        ref_tag = self.soup.find("ref")
-        if ref_tag:
-            # Extract the value of the 'name' attribute
-            name = str(ref_tag.get("name"))  # type: ignore # see https://github.com/python/typeshed/issues/8356
-            if name.endswith("\\"):
-                # Cut off the trailing backward slash
-                name = name[:-1]
-            if name.endswith("/"):
-                # Cut off the trailing forward slash
-                name = name[:-1]
-            if name == "None" or name is None:
-                return ""
-            else:
-                return name
-        else:
+        if not (ref_tag := self.soup.find("ref")):
             return ""
+        # Extract the value of the 'name' attribute
+        name = str(ref_tag.get("name"))  # type: ignore # see https://github.com/python/typeshed/issues/8356
+        if name.endswith("\\"):
+            # Cut off the trailing backward slash
+            name = name[:-1]
+        if name.endswith("/"):
+            # Cut off the trailing forward slash
+            name = name[:-1]
+        return "" if name == "None" or name is None else name
 
     @property
     def reference_type(self) -> Optional[ReferenceType]:
         if self.is_general_reference:
-            type_ = ReferenceType.GENERAL
+            return ReferenceType.GENERAL
         elif self.is_footnote_reference:
-            type_ = ReferenceType.FOOTNOTE
+            return ReferenceType.FOOTNOTE
         else:
             logger.error("Could not determine type")
-            type_ = None
-        return type_
+            return None
 
     @property
     def footnote_subtype(self) -> Optional[FootnoteSubtype]:
-        type_ = None
         if self.is_footnote_reference:
-            type_ = (
+            return (
                 FootnoteSubtype.NAMED
                 if self.is_empty_named_reference
                 else FootnoteSubtype.CONTENT
             )
-        return type_
+        else:
+            return None
 
     @property
     def titles(self) -> List[str]:
-        titles = []
-        for template in self.templates:
-            if template.parameters and "title" in template.parameters:
-                titles.append(template.parameters["title"])
-        return titles
+        return [
+            template.parameters["title"]
+            for template in self.templates
+            if template.parameters and "title" in template.parameters
+        ]
 
     @property
     def get_template_dicts(self) -> List[Dict[str, Any]]:
-        template_dicts = []
-        for template in self.templates:
-            template_dicts.append(template.get_dict())
-        return template_dicts
+        return [template.get_dict() for template in self.templates]
 
     @property
     def template_names(self) -> List[str]:
-        template_names = []
-        for template in self.templates:
-            template_names.append(template.name)
-        return template_names
+        return [template.name for template in self.templates]
 
     @property
     def raw_urls(self) -> List[str]:
         """Get a list of the raw unique urls"""
-        urls = []
-        for url in self.reference_urls:
-            urls.append(url.url)
-        return urls
+        return [url.url for url in self.reference_urls]
 
     @property
     def get_reference_url_dicts(self) -> List[Dict[str, Any]]:
         urls = []
         if self.reference_urls:
-            for url in self.reference_urls:
-                urls.append(url.get_dict)
+            urls.extend(url.get_dict for url in self.reference_urls)
         return urls
 
     @property
     def is_footnote_reference(self):
         """This could also be implemented based on the class type of the wikicode attribute.
         I choose not to because it could perhaps be brittle."""
-        if self.is_general_reference:
-            return False
-        else:
-            return True
+        return not self.is_general_reference
 
     @property
     def get_wikicode_as_string(self):
@@ -276,11 +256,10 @@ class WikipediaReference(JobBaseModel):
         """Return non-unique bare urls from the the stripped wikitext (templates are stripped away)"""
         urls = []
         for comment in self.comments:
-            urls_found = re.findall(
+            if urls_found := re.findall(
                 link_extraction_regex,
                 comment,
-            )
-            if urls_found:
+            ):
                 urls.extend(urls_found)
         return urls
 

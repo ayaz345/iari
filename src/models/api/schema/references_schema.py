@@ -18,11 +18,9 @@ class ReferencesSchema(Schema):
 
     # noinspection PyUnusedLocal
     @post_load
-    # **kwargs is needed here despite what the validator claims
-    def return_object(self, data, **kwargs) -> ReferencesJob:  # type: ignore # dead: disable
+    def return_object(self, data, **kwargs) -> ReferencesJob:    # type: ignore # dead: disable
         """Return job object"""
         from src import app
 
         app.logger.debug("return_object: running")
-        job = ReferencesJob(**data)
-        return job
+        return ReferencesJob(**data)

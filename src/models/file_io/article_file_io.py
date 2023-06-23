@@ -16,5 +16,4 @@ class ArticleFileIo(FileIo):
             raise MissingInformationError()
         # we got a job, generate the wari_id
         self.job.get_ids_from_mediawiki_api()
-        filename = f"{self.job.wari_id}.json"
-        return filename
+        return f"{self.job.wari_id}.json"

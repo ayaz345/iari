@@ -22,11 +22,9 @@ class UrlSchema(BaseSchema):
 
     # noinspection PyUnusedLocal
     @post_load
-    # **kwargs is needed here despite what the validator claims
-    def return_object(self, data, **kwargs) -> UrlJob:  # type: ignore # dead: disable
+    def return_object(self, data, **kwargs) -> UrlJob:    # type: ignore # dead: disable
         """Return job object"""
         from src import app
 
         app.logger.debug("return_object: running")
-        job = UrlJob(**data)
-        return job
+        return UrlJob(**data)
